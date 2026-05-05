@@ -2,8 +2,8 @@ import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
-import java.util.Arrays; // Import para trabalhar com listas
-import java.util.List;   // Import para trabalhar com listas
+import java.util.Arrays;
+import java.util.List;  
 
 import br.com.sankhya.extensions.eventoprogramavel.EventoProgramavelJava;
 import br.com.sankhya.jape.event.PersistenceEvent;
@@ -25,30 +25,24 @@ public class ProgramacaoFinanceira implements EventoProgramavelJava {
         
         boolean ignorarRegraPorTop = false;
         
-        // 1. Verifica se o título nasceu de uma Nota (NUNOTA > 0)
         if (nunota != null && nunota.compareTo(BigDecimal.ZERO) > 0) {
             
-            // Busca a TOP lá na TGFCAB
             BigDecimal codTipOper = getCodTipOper(nunota);
             
             if (codTipOper != null) {
                 int top = codTipOper.intValue();
                 
-                // Lista limpa e organizada com todas as suas TOPs de Venda
                 List<Integer> topsVendas = Arrays.asList(
                     900, 901, 902, 1000, 1001, 1002, 1003, 1004, 
                     1005, 1006, 1007, 1008, 1009, 1010, 1011, 1012, 1013
                 );
                 
-                // O Java verifica automaticamente se a TOP da nota está dentro da lista acima
                 if (topsVendas.contains(top)) {
-                    ignorarRegraPorTop = true; // Se estiver na lista, marcamos para ignorar o bloqueio
+                    ignorarRegraPorTop = true;
                 }
             }
         }
         
-        // 2. Só aplica a trava se NÃO for uma TOP de Venda permitida
-        // Bloqueia origem "E" (Lançamento manual no Financeiro) e "F" (Faturamento de outras TOPs não listadas)
         if (!ignorarRegraPorTop && ("E".equals(origem) || "F".equals(origem))) {
             
             Timestamp dtVenc = financeiroVO.asTimestamp("DTVENC");
