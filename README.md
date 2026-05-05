@@ -1,48 +1,71 @@
 # 🛡️ Extensão Sankhya: Validação de Período Financeiro (TGFFIN)
 
-Este projeto contém um **Evento Programável Java** desenvolvido para o ERP Sankhya. A extensão intercepta a inserção de novos registros na tabela `TGFFIN` (Movimentação Financeira) e valida se a Data de Vencimento (`DTVENC`) do título pertence a um período de programação que esteja aberto.
+Este projeto contém um **Evento Programável Java** (Action Event) desenvolvido para o ERP Sankhya. A extensão intercepta operações na tabela `TGFFIN` (Financeiro) para validar se o vencimento de um título respeita as janelas de planejamento definidas pela controladoria.
+
+---
 
 ## 🎯 Objetivo
 
-Garantir a integridade do planejamento financeiro, impedindo que usuários (ou processos automáticos) insiram títulos com vencimentos em meses/períodos que já foram encerrados pela controladoria ou diretoria financeira.
+Garantir a integridade do planejamento financeiro, impedindo a inserção ou alteração de títulos com Data de Vencimento (`DTVENC`) em períodos que já foram encerrados ou que ainda não foram abertos para programação.
 
 ---
 
-## 📂 Estrutura do Projeto (VS Code)
+## 📂 Estrutura do Projeto
 
-O ambiente de desenvolvimento segue o padrão de projetos Java no Visual Studio Code:
+O ambiente está configurado para desenvolvimento no **VS Code**, seguindo as melhores práticas de organização:
 
-* **`src/`**: Contém o código-fonte da extensão (ex: `classes/ProgramacaoFinanceira.java`).
-* **`lib/`**: Diretório para armazenar as dependências do Sankhya (arquivos `.jar` como `sankhya-jape.jar`, `sankhya-modelcore.jar`, etc.) necessários para a compilação local.
-* **`bin/`**: Pasta de saída onde os arquivos `.class` compilados serão gerados.
-
-> **Nota de Dependência:** Para que o VS Code não acuse erros de sintaxe, certifique-se de copiar as bibliotecas (JARs) do servidor Sankhya (`/home/mgeweb/lib` ou similar) para a pasta `lib` deste projeto.
-
----
-
-## ⚙️ Pré-requisitos e Configuração (Banco de Dados)
-
-Para que a regra de negócio funcione, o sistema espera que exista uma tabela no banco de dados para controlar os períodos. 
-
-* **Tabela de Períodos:** A query no método `isPeriodoFechado` precisa ser ajustada para apontar para a sua tabela real (ex: `AD_PERIODOFIN`).
-* **Campos Necessários:** A tabela deve possuir campos que representem a data de início, data final e o status (ex: Aberto/Fechado) do período.
+* **`src/`**: Código-fonte Java (`.java`).
+* **`lib/`**: Dependências do ERP (JARs do Sankhya como `san-mge.jar`, `jape.jar`). 
+    * *Nota: Estes arquivos estão ignorados no Git para evitar erros de limite de tamanho (100MB).*
+* **`bin/`**: Artefatos compilados (`.class`).
+* **`.gitignore`**: Configurado para proteger o repositório de arquivos binários pesados.
 
 ---
 
-## 🚀 Como Instalar no Sankhya
+## ⚙️ Configuração do Banco de Dados
 
-1. **Compilação:** Compile o projeto utilizando sua IDE (VS Code, Eclipse, etc.) para gerar o arquivo `.class` ou empacote em um `.jar`.
-2. **Upload:** Coloque o arquivo compilado na pasta de extensões do servidor Sankhya.
-3. **Configuração no Sistema:**
-   * Acesse a tela **Dicionário de Dados** no Sankhya.
-   * Localize a tabela **`TGFFIN`** (Financeiro).
-   * Vá até a aba **Eventos**.
-   * Adicione um novo registro e informe o caminho completo da classe: `classes.ProgramacaoFinanceira`.
-   * Marque a opção para o evento ser ativado.
+A validação consome dados de uma tabela personalizada de períodos. Certifica-te de que a estrutura abaixo existe no teu ambiente:
+
+| Campo | Tipo | Descrição |
+| :--- | :--- | :--- |
+| `DTINICIO` | DATE | Data inicial do período permitido. |
+| `DTFIM` | DATE | Data final do período permitido. |
+| `STATUS` | CHAR(1) | 'A' para Aberto, 'F' para Fechado. |
+
+> **Importante:** O método `isPeriodoFechado` na classe `ProgramacaoFinanceira.java` deve ser revisado para garantir que o SQL interno coincida com o nome da tua tabela real (ex: `AD_PERIODOFIN`).
 
 ---
 
-## 🚦 Comportamento do Sistema
+## 🚀 Instalação e Deploy
 
-* **Caminho Feliz:** Se a data de vencimento (`DTVENC`) cair em um período **Aberto**, o registro será salvo normalmente na `TGFFIN`.
-* **Bloqueio:** Se a data cair em um período **Fechado** (ou inexistente, dependendo da configuração), o evento dispara um `Rollback` no banco e exibe um alerta pop-up na tela do usuário informando que a ação foi bloqueada.
+1.  **Dependências:** Copia as bibliotecas do servidor Sankhya (`/home/mgeweb/lib`) para a pasta `lib/` local.
+2.  **Compilação:** Compila o código para gerar o arquivo `.class`.
+3.  **Deploy:**
+    * Faz o upload do `.class` ou do pacote `.jar` para o servidor (diretório de extensões).
+    * No Sankhya, acede a **Dicionário de Dados** > Tabela `TGFFIN` > Aba **Eventos**.
+    * Regista a classe: `br.com.s3tech.ProgramacaoFinanceira`.
+    * Seleciona o momento: **Antes de Inserir** e **Antes de Alterar**.
+
+---
+
+## 🚦 Regras de Negócio (Fluxo de Lógica)
+
+
+
+1.  **Interceptação:** O evento é disparado antes de qualquer gravação na `TGFFIN`.
+2.  **Coleta de Dados:** O sistema lê a `DTVENC` do registro que está a ser manipulado.
+3.  **Consulta de Período:** Executa uma query para verificar se existe um período "Aberto" que compreenda a data em questão.
+4.  **Ação:**
+    * **Sucesso:** O processo segue normalmente.
+    * **Bloqueio:** Uma `PersistenceException` é lançada, interrompendo a transação (**Rollback**) e exibindo um alerta pop-up ao utilizador.
+
+---
+
+## 🛠️ Solução de Problemas (FAQ)
+
+### O Push para o GitHub falhou (Erro de limite de 100MB)?
+Se tentares subir arquivos `.jar` grandes, o GitHub bloqueará o envio. Mesmo que apagues o arquivo na pasta, ele permanece no histórico do Git.
+* **Solução:** Utiliza o comando `git reset --hard origin/main` para limpar os commits locais problemáticos e garante que a linha `*.jar` esteja no teu `.gitignore`.
+
+---
+*Desenvolvido por S3 Tech - 2026*
