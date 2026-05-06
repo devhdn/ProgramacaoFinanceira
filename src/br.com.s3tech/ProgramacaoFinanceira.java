@@ -2,8 +2,6 @@ import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
-import java.util.Arrays; 
-import java.util.List;   
 
 import br.com.sankhya.extensions.eventoprogramavel.EventoProgramavelJava;
 import br.com.sankhya.jape.event.PersistenceEvent;
@@ -22,40 +20,26 @@ public class ProgramacaoFinanceira implements EventoProgramavelJava {
         
         String origem = financeiroVO.asString("ORIGEM");
         BigDecimal nunota = financeiroVO.asBigDecimal("NUNOTA");
-        BigDecimal codTipTit = financeiroVO.asBigDecimal("CODTIPTIT"); // Captura o Tipo de Título
+        BigDecimal codTipTit = financeiroVO.asBigDecimal("CODTIPTIT");
         
         boolean ignorarRegra = false;
         
-        // 1. Verifica se o Tipo de Título é 37 (Se for, já marca para ignorar a regra)
+        // 1. Verifica se o Tipo de Título é 37 (Ignora a regra)
         if (codTipTit != null && codTipTit.intValue() == 37) {
             ignorarRegra = true;
         }
         
-        // 2. Verifica se o título nasceu de uma Nota (NUNOTA > 0)
-        // Só faz a busca no banco se a regra ainda não foi ignorada pelo passo anterior
+        // 2. Verifica se o título nasceu de uma Nota (NUNOTA > 0) e valida o Tipo de Negociação
         if (!ignorarRegra && nunota != null && nunota.compareTo(BigDecimal.ZERO) > 0) {
             
-            // Busca a TOP lá na TGFCAB
-            BigDecimal codTipOper = getCodTipOper(nunota);
-            
-            if (codTipOper != null) {
-                int top = codTipOper.intValue();
-                
-                // Lista limpa e organizada com todas as suas TOPs de Venda
-                List<Integer> topsVendas = Arrays.asList(
-                    900, 901, 902, 1000, 1001, 1002, 1003, 1004, 
-                    1005, 1006, 1007, 1008, 1009, 1010, 1011, 1012, 1013
-                );
-                
-                // O Java verifica automaticamente se a TOP da nota está dentro da lista acima
-                if (topsVendas.contains(top)) {
-                    ignorarRegra = true; // Se estiver na lista, marcamos para ignorar o bloqueio
-                }
+            // Vai ao banco e verifica se o CODTIPVENDA da nota atende aos seus critérios
+            if (isTipoNegociacaoPermitido(nunota)) {
+                ignorarRegra = true;
             }
         }
         
-        // 3. Só aplica a trava se NÃO for para ignorar a regra (Tipo 37 ou TOP de Venda permitida)
-        // Bloqueia origem "E" (Lançamento manual no Financeiro) e "F" (Faturamento de outras TOPs não listadas)
+        // 3. Só aplica a trava se NÃO for para ignorar a regra
+        // Bloqueia origem "E" (Lançamento manual no Financeiro) e "F" (Faturamento de notas não permitidas)
         if (!ignorarRegra && ("E".equals(origem) || "F".equals(origem))) {
             
             Timestamp dtVenc = financeiroVO.asTimestamp("DTVENC");
@@ -75,24 +59,32 @@ public class ProgramacaoFinanceira implements EventoProgramavelJava {
     }
     
     // ====================================================================
-    // Método: Busca a TOP (Tipo de Operação) na tabela TGFCAB
+    // Método: Verifica dinamicamente se o CODTIPVENDA da Nota é permitido
     // ====================================================================
-    private BigDecimal getCodTipOper(BigDecimal nunota) throws Exception {
+    private boolean isTipoNegociacaoPermitido(BigDecimal nunota) throws Exception {
         JdbcWrapper jdbc = null;
         NativeSql sql = null;
-        BigDecimal codTipOper = null;
+        boolean permitido = false;
         
         try {
             jdbc = EntityFacadeFactory.getDWFFacade().getJdbcWrapper();
             sql = new NativeSql(jdbc);
             
-            sql.appendSql("SELECT CODTIPOPER FROM TGFCAB WHERE NUNOTA = :NUNOTA");
+            // A query verifica se o CODTIPVENDA da nota está dentro da lista de permitidos na TGFTPV
+            sql.appendSql("SELECT 1 FROM TGFCAB CAB " +
+                          "WHERE CAB.NUNOTA = :NUNOTA " +
+                          "AND CAB.CODTIPVENDA IN (" +
+                          "    SELECT TPV.CODTIPVENDA FROM TGFTPV TPV " +
+                          "    WHERE TPV.SUBTIPOVENDA = 1 AND TPV.ATIVO = 'S'" +
+                          ")");
+                          
             sql.setNamedParameter("NUNOTA", nunota);
             
             ResultSet rs = sql.executeQuery();
             
+            // Se retornar alguma linha, significa que o Tipo de Negociação é válido
             if (rs.next()) {
-                codTipOper = rs.getBigDecimal("CODTIPOPER");
+                permitido = true;
             }
             
         } finally {
@@ -100,7 +92,7 @@ public class ProgramacaoFinanceira implements EventoProgramavelJava {
             JdbcWrapper.closeSession(jdbc);
         }
         
-        return codTipOper;
+        return permitido;
     }
 
     // ====================================================================
@@ -140,7 +132,7 @@ public class ProgramacaoFinanceira implements EventoProgramavelJava {
     }
 
     // ====================================================================
-    // Métodos obrigatórios da interface que não usaremos neste momento
+    // Métodos obrigatórios da interface
     // ====================================================================
 
     @Override
