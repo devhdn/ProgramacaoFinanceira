@@ -26,18 +26,19 @@ public class ProgramacaoFinanceira implements EventoProgramavelJava {
         
         boolean ignorarRegra = false;
         
+        // Ignora a regra se for um tipo de título específico (ex: 37)
         if (codTipTit != null && codTipTit.intValue() == 37) {
             ignorarRegra = true;
         }
         
+        // Valida as regras de negócio baseadas na Nota (TOP e Tipo de Negociação)
         if (!ignorarRegra && nunota != null && nunota.compareTo(BigDecimal.ZERO) > 0) {
-            
-            // Vai ao banco e verifica se o CODTIPVENDA da nota atende aos seus critérios
-            if (isTipoNegociacaoPermitido(nunota)) {
+            if (isOperacaoPermitida(nunota)) {
                 ignorarRegra = true;
             }
         }
         
+        // Aplica o bloqueio de período financeiro se a regra não foi ignorada
         if (!ignorarRegra && ("E".equals(origem) || "F".equals(origem))) {
             
             Timestamp dtVenc = financeiroVO.asTimestamp("DTVENC");
@@ -57,20 +58,24 @@ public class ProgramacaoFinanceira implements EventoProgramavelJava {
     }
     
     // ====================================================================
-    // Método: Verifica dinamicamente se o CODTIPVENDA da Nota é permitido
+    // Método: Verifica dinamicamente se a TOP e o CODTIPVENDA são permitidos
     // ====================================================================
-    private boolean isTipoNegociacaoPermitido(BigDecimal nunota) throws Exception {
+    private boolean isOperacaoPermitida(BigDecimal nunota) throws Exception {
         JdbcWrapper jdbc = null;
         NativeSql sql = null;
         boolean permitido = false;
+        
+        // ⚠️ INSIRA AQUI A SUA LISTA DE TOPs SEPARADA POR VÍRGULA
+        String listaTopsPermitidas = "900,901,902,1000,1001,1002,1003,1004,1005,1006,1007,1008,1009,1010,1011,1012,1013";
         
         try {
             jdbc = EntityFacadeFactory.getDWFFacade().getJdbcWrapper();
             sql = new NativeSql(jdbc);
             
-            // A query verifica se o CODTIPVENDA da nota está dentro da lista de permitidos na TGFTPV
+            // A query agora verifica o CODTIPOOPER (TOP) e o CODTIPVENDA
             sql.appendSql("SELECT 1 FROM TGFCAB CAB " +
                           "WHERE CAB.NUNOTA = :NUNOTA " +
+                          "AND CAB.CODTIPOOPER IN (" + listaTopsPermitidas + ") " +
                           "AND CAB.CODTIPVENDA IN (" +
                           "    SELECT TPV.CODTIPVENDA FROM TGFTPV TPV " +
                           "    WHERE TPV.SUBTIPOVENDA = 1 AND TPV.ATIVO = 'S'" +
@@ -132,22 +137,11 @@ public class ProgramacaoFinanceira implements EventoProgramavelJava {
     // Métodos obrigatórios da interface
     // ====================================================================
 
-    @Override
-    public void afterInsert(PersistenceEvent event) throws Exception {}
-
-    @Override
-    public void beforeUpdate(PersistenceEvent event) throws Exception {}
-    
-    @Override
-    public void afterUpdate(PersistenceEvent event) throws Exception {}
-
-    @Override
-    public void beforeDelete(PersistenceEvent event) throws Exception {}
-    
-    @Override
-    public void afterDelete(PersistenceEvent event) throws Exception {}
-
-    @Override
-    public void beforeCommit(TransactionContext ctx) throws Exception {}
+    @Override public void afterInsert(PersistenceEvent event) throws Exception {}
+    @Override public void beforeUpdate(PersistenceEvent event) throws Exception {}
+    @Override public void afterUpdate(PersistenceEvent event) throws Exception {}
+    @Override public void beforeDelete(PersistenceEvent event) throws Exception {}
+    @Override public void afterDelete(PersistenceEvent event) throws Exception {}
+    @Override public void beforeCommit(TransactionContext ctx) throws Exception {}
 
 }
