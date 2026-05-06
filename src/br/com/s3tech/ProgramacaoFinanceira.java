@@ -26,12 +26,10 @@ public class ProgramacaoFinanceira implements EventoProgramavelJava {
         
         boolean ignorarRegra = false;
         
-        // 1. Verifica se o Tipo de Título é 37 (Ignora a regra)
         if (codTipTit != null && codTipTit.intValue() == 37) {
             ignorarRegra = true;
         }
         
-        // 2. Verifica se o título nasceu de uma Nota (NUNOTA > 0) e valida o Tipo de Negociação
         if (!ignorarRegra && nunota != null && nunota.compareTo(BigDecimal.ZERO) > 0) {
             
             // Vai ao banco e verifica se o CODTIPVENDA da nota atende aos seus critérios
@@ -40,8 +38,6 @@ public class ProgramacaoFinanceira implements EventoProgramavelJava {
             }
         }
         
-        // 3. Só aplica a trava se NÃO for para ignorar a regra
-        // Bloqueia origem "E" (Lançamento manual no Financeiro) e "F" (Faturamento de notas não permitidas)
         if (!ignorarRegra && ("E".equals(origem) || "F".equals(origem))) {
             
             Timestamp dtVenc = financeiroVO.asTimestamp("DTVENC");
@@ -84,7 +80,6 @@ public class ProgramacaoFinanceira implements EventoProgramavelJava {
             
             ResultSet rs = sql.executeQuery();
             
-            // Se retornar alguma linha, significa que o Tipo de Negociação é válido
             if (rs.next()) {
                 permitido = true;
             }
