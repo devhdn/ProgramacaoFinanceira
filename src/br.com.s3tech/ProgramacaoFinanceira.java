@@ -12,7 +12,7 @@ import br.com.sankhya.jape.vo.DynamicVO;
 import br.com.sankhya.modelcore.util.EntityFacadeFactory;
 
 public class ProgramacaoFinanceira implements EventoProgramavelJava {
-
+    
     @Override
     public void beforeInsert(PersistenceEvent event) throws Exception {
         
