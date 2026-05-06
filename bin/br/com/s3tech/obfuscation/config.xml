@@ -1,0 +1,19 @@
+<config>
+    <input>
+        <jar in="../ProgramacaoFinanceira.jar" out="../ProgramacaoFinanceira-Protegido.jar"/>
+    </input>
+
+    <classpath>
+        <jar name="../lib/*.jar"/>
+    </classpath>
+
+    <keep-names>
+        <class access="public" template="class br.com.s3tech.ProgramacaoFinanceira">
+            <method template="public *(**)"/>
+        </class>
+    </keep-names>
+
+    <property name="string-encryption" value="enable"/>
+    <property name="control-flow-obfuscation" value="enable"/>
+    <property name="extensive-flow-obfuscation" value="maximum"/>
+</config>
