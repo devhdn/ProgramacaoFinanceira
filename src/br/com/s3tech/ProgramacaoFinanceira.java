@@ -26,19 +26,19 @@ public class ProgramacaoFinanceira implements EventoProgramavelJava {
         
         boolean ignorarRegra = false;
         
-        // Ignora a regra se for um tipo de título específico (ex: 37)
+        // 1. Ignora a regra se for um tipo de título específico (ex: 37)
         if (codTipTit != null && codTipTit.intValue() == 37) {
             ignorarRegra = true;
         }
         
-        // Valida as regras de negócio baseadas na Nota (TOP e Tipo de Negociação)
+        // 2. Valida se a TOP deve ser desconsiderada OU se o Tipo de Negociação libera a trava
         if (!ignorarRegra && nunota != null && nunota.compareTo(BigDecimal.ZERO) > 0) {
             if (isOperacaoPermitida(nunota)) {
                 ignorarRegra = true;
             }
         }
         
-        // Aplica o bloqueio de período financeiro se a regra não foi ignorada
+        // 3. Aplica o bloqueio de período financeiro se a regra não foi ignorada
         if (!ignorarRegra && ("E".equals(origem) || "F".equals(origem))) {
             
             Timestamp dtVenc = financeiroVO.asTimestamp("DTVENC");
@@ -58,27 +58,31 @@ public class ProgramacaoFinanceira implements EventoProgramavelJava {
     }
     
     // ====================================================================
-    // Método: Verifica dinamicamente se a TOP e o CODTIPVENDA são permitidos
+    // Método: Verifica se a TOP é exceção OU se o CODTIPVENDA é permitido
     // ====================================================================
     private boolean isOperacaoPermitida(BigDecimal nunota) throws Exception {
         JdbcWrapper jdbc = null;
         NativeSql sql = null;
         boolean permitido = false;
         
-        // ⚠️ INSIRA AQUI A SUA LISTA DE TOPs SEPARADA POR VÍRGULA
-        String listaTopsPermitidas = "900,901,902,1000,1001,1002,1003,1004,1005,1006,1007,1008,1009,1010,1011,1012,1013";
+        // As TOPs que o sistema DEVE DESCONSIDERAR da validação
+        String listaTopsDesconsideradas = "900,901,902,1000,1001,1002,1003,1004,1005,1006,1007,1008,1009,1010,1011,1012,1013";
         
         try {
             jdbc = EntityFacadeFactory.getDWFFacade().getJdbcWrapper();
             sql = new NativeSql(jdbc);
             
-            // A query agora verifica o CODTIPOOPER (TOP) e o CODTIPVENDA
+            // O segredo está no OR (...). 
+            // Se bater na lista de TOPs, o banco já retorna verdadeiro e ignora a regra.
+            // Se NÃO bater na lista de TOPs, ele verifica se o Tipo de Venda salva a operação.
             sql.appendSql("SELECT 1 FROM TGFCAB CAB " +
                           "WHERE CAB.NUNOTA = :NUNOTA " +
-                          "AND CAB.CODTIPOOPER IN (" + listaTopsPermitidas + ") " +
-                          "AND CAB.CODTIPVENDA IN (" +
-                          "    SELECT TPV.CODTIPVENDA FROM TGFTPV TPV " +
-                          "    WHERE TPV.SUBTIPOVENDA = 1 AND TPV.ATIVO = 'S'" +
+                          "AND (" +
+                          "    CAB.CODTIPOPER IN (" + listaTopsDesconsideradas + ") " +
+                          "    OR CAB.CODTIPVENDA IN (" +
+                          "        SELECT TPV.CODTIPVENDA FROM TGFTPV TPV " +
+                          "        WHERE TPV.SUBTIPOVENDA = 1 AND TPV.ATIVO = 'S'" +
+                          "    )" +
                           ")");
                           
             sql.setNamedParameter("NUNOTA", nunota);
@@ -143,5 +147,4 @@ public class ProgramacaoFinanceira implements EventoProgramavelJava {
     @Override public void beforeDelete(PersistenceEvent event) throws Exception {}
     @Override public void afterDelete(PersistenceEvent event) throws Exception {}
     @Override public void beforeCommit(TransactionContext ctx) throws Exception {}
-
 }
