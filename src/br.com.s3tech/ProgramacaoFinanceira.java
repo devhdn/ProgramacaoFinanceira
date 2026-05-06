@@ -1,9 +1,11 @@
+package br.com.s3tech;
+
 import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.List;  
+import java.util.Arrays; 
+import java.util.List;   
 
 import br.com.sankhya.extensions.eventoprogramavel.EventoProgramavelJava;
 import br.com.sankhya.jape.event.PersistenceEvent;
@@ -22,28 +24,41 @@ public class ProgramacaoFinanceira implements EventoProgramavelJava {
         
         String origem = financeiroVO.asString("ORIGEM");
         BigDecimal nunota = financeiroVO.asBigDecimal("NUNOTA");
+        BigDecimal codTipTit = financeiroVO.asBigDecimal("CODTIPTIT"); // Captura o Tipo de Título
         
-        boolean ignorarRegraPorTop = false;
+        boolean ignorarRegra = false;
         
-        if (nunota != null && nunota.compareTo(BigDecimal.ZERO) > 0) {
+        // 1. Verifica se o Tipo de Título é 37 (Se for, já marca para ignorar a regra)
+        if (codTipTit != null && codTipTit.intValue() == 37) {
+            ignorarRegra = true;
+        }
+        
+        // 2. Verifica se o título nasceu de uma Nota (NUNOTA > 0)
+        // Só faz a busca no banco se a regra ainda não foi ignorada pelo passo anterior
+        if (!ignorarRegra && nunota != null && nunota.compareTo(BigDecimal.ZERO) > 0) {
             
+            // Busca a TOP lá na TGFCAB
             BigDecimal codTipOper = getCodTipOper(nunota);
             
             if (codTipOper != null) {
                 int top = codTipOper.intValue();
                 
+                // Lista limpa e organizada com todas as suas TOPs de Venda
                 List<Integer> topsVendas = Arrays.asList(
                     900, 901, 902, 1000, 1001, 1002, 1003, 1004, 
                     1005, 1006, 1007, 1008, 1009, 1010, 1011, 1012, 1013
                 );
                 
+                // O Java verifica automaticamente se a TOP da nota está dentro da lista acima
                 if (topsVendas.contains(top)) {
-                    ignorarRegraPorTop = true;
+                    ignorarRegra = true; // Se estiver na lista, marcamos para ignorar o bloqueio
                 }
             }
         }
         
-        if (!ignorarRegraPorTop && ("E".equals(origem) || "F".equals(origem))) {
+        // 3. Só aplica a trava se NÃO for para ignorar a regra (Tipo 37 ou TOP de Venda permitida)
+        // Bloqueia origem "E" (Lançamento manual no Financeiro) e "F" (Faturamento de outras TOPs não listadas)
+        if (!ignorarRegra && ("E".equals(origem) || "F".equals(origem))) {
             
             Timestamp dtVenc = financeiroVO.asTimestamp("DTVENC");
             
