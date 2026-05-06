@@ -1,5 +1,3 @@
-package br.com.s3tech;
-
 import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.Timestamp;
