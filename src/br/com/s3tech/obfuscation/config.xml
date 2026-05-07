@@ -1,14 +1,17 @@
 <config>
     <input>
-        <jar in="../ProgramacaoFinanceira.jar" out="../ProgramacaoFinanceira-Protegido.jar"/>
+        <jar in="ProgramacaoFinanceira.jar" out="ProgramacaoFinanceira-Protegido.jar"/>
     </input>
 
     <classpath>
-        <jar name="../lib/*.jar"/>
+        <jar name="C:/dev/ProgramacaoFinanceira/lib/*.jar"/>
     </classpath>
 
     <keep-names>
         <class access="public" template="class br.com.s3tech.ProgramacaoFinanceira">
+            <method template="public *(**)"/>
+        </class>
+        <class access="public" template="class br.com.s3tech.ValidacaoPagamentoAvista">
             <method template="public *(**)"/>
         </class>
     </keep-names>

@@ -27,7 +27,7 @@ public class ProgramacaoFinanceira implements EventoProgramavelJava {
         boolean ignorarRegra = false;
         
         // 1. Ignora a regra se for um tipo de título específico (ex: 37)
-        if (codTipTit != null && codTipTit.intValue() == 37) {
+        if (codTipTit != null && codTipTit.intValue() == 11) {
             ignorarRegra = true;
         }
         
