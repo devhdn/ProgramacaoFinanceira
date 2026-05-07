@@ -38,7 +38,6 @@ public class ObservacaoLiberacao implements EventoProgramavelJava {
             String observacaoAuto = "Observação automática gravada após salvar. Título: " + nuFin;
             String observacaoAtual = tsilibVO.asString("OBSERVACAO");
 
-            // ⚠️ TRAVA DE SEGURANÇA: Evita loop infinito no afterUpdate
             if (observacaoAtual == null || !observacaoAtual.equals(observacaoAuto)) {
                 
                 JapeWrapper tsilibDAO = JapeFactory.dao(event.getEntity().getName());

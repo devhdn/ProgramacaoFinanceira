@@ -66,7 +66,7 @@ public class ProgramacaoFinanceira implements EventoProgramavelJava {
         boolean permitido = false;
         
         // As TOPs que o sistema DEVE DESCONSIDERAR da validação
-        String listaTopsDesconsideradas = "900,901,902,1000,1001,1002,1003,1004,1005,1006,1007,1008,1009,1010,1011,1012,1013,1105,1100";
+        String listaTopsDesconsideradas = "900,901,902,1000,1001,1002,1003,1004,1005,1006,1007,1008,1009,1010,1011,1012,1013,1105,1100,1313";
         
         try {
             jdbc = EntityFacadeFactory.getDWFFacade().getJdbcWrapper();
