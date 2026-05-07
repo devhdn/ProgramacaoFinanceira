@@ -34,13 +34,13 @@ public class ValidacaoPagamentoAvista implements RegraNegocioJava {
                 
                 // 1. Defina o ID do Evento de Liberação (Deve estar cadastrado no Sankhya)
                 // Exemplo: 1, 2000, 3500... Substitua pelo ID real do seu evento.
-                int idEventoLiberacao = 1; 
+                int idEventoLiberacao = 1002; 
 
                 // 2. Cria o objeto de Liberação Solicitada
                 LiberacaoSolicitada ls = new LiberacaoSolicitada(
                         nunota, 
                         "TGFCAB", 
-                        idEventoLiberacao, 
+                        idEventoLiberacao,
                         ctx.getUsuarioLogado()
                 );
                 
