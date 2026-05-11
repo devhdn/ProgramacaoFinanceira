@@ -1,6 +1,7 @@
 package br.com.s3tech;
 
 import java.math.BigDecimal;
+
 import br.com.sankhya.extensions.regrasnegocio.ContextoRegra;
 import br.com.sankhya.extensions.regrasnegocio.RegraNegocioJava;
 import br.com.sankhya.jape.wrapper.JapeFactory;
