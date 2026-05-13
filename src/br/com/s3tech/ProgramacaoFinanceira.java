@@ -66,9 +66,6 @@ public class ProgramacaoFinanceira implements EventoProgramavelJava {
         NativeSql sql = null;
         boolean permitido = false;
 
-        // 1. Busca o parâmetro usando o método estático da sua NativeSql
-        // Ele já gerencia a abertura e fechamento da sessão internamente para esta
-        // busca
         String listaTops = NativeSql.getString("TEXTO", "TSIPAR", "CHAVE = 'ISOPERPERM'");
 
         if (listaTops == null || listaTops.trim().isEmpty()) {
@@ -79,7 +76,6 @@ public class ProgramacaoFinanceira implements EventoProgramavelJava {
             jdbc = EntityFacadeFactory.getDWFFacade().getJdbcWrapper();
             sql = new NativeSql(jdbc);
 
-            // 2. Monta a consulta principal
             sql.appendSql("SELECT 1 FROM TGFCAB CAB ");
             sql.appendSql("WHERE CAB.NUNOTA = :NUNOTA ");
             sql.appendSql("AND ( ");
